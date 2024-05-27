@@ -1,0 +1,18 @@
+package project1a;
+
+import java.awt.image.BufferedImage;
+
+public class SingleThreadedMatching {
+    public static void main(String[] args) throws Exception {
+
+        String templateImagePath = "images/OneG.jpg";
+        String sourceImagePath = "images/TenCardG.jpg";
+
+        BufferedImage templateImage = ImageLoader.readImage(templateImagePath);
+        BufferedImage sourceImage = ImageLoader.readImage(sourceImagePath);
+
+        double[][] result = TemplateMatching.templateMatching(templateImage, sourceImage);
+
+
+    }
+}
