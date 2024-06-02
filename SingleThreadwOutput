@@ -1,0 +1,120 @@
+package projectA;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.ImageIO;
+
+public class myMain {
+
+    public static short[][] grayImage;
+    public static int width;
+    public static int height;
+    private static BufferedImage sourceImage;
+    private static BufferedImage templateImage;
+
+    public static void main(String[] args) throws IOException {
+        String sourceImagePath = "TenCardG.jpg";
+        String templateImagePath = "Template.jpg";
+
+        File sourceFile = new File(sourceImagePath);
+        sourceImage = ImageIO.read(sourceFile);
+        short[][] sourceImg = readColourImage(sourceImagePath);
+
+        File templateFile = new File(templateImagePath);
+        templateImage = ImageIO.read(templateFile);
+        short[][] templateImg = readColourImage(templateImagePath);
+
+        templateMatching(sourceImg, templateImg);
+
+        // Save the result image in the same directory as the source and template images
+        writeColourImage("Result.jpg");
+
+        System.out.println("Result image saved as: Result.jpg");
+
+        // Verify file existence
+        File resultFile = new File("Result.jpg");
+        if (resultFile.exists()) {
+            System.out.println("Result.jpg has been successfully created.");
+        } else {
+            System.out.println("Failed to create Result.jpg.");
+        }
+    }
+
+    public static short[][] readColourImage(String fileName) throws IOException {
+        BufferedImage image = ImageIO.read(new File(fileName));
+        width = image.getWidth();
+        height = image.getHeight();
+
+        byte[] pixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        grayImage = new short[height][width];
+
+        int coord, pr, pg, pb;
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                coord = 3 * (i * width + j);
+                pr = pixels[coord] & 0xff;
+                pg = pixels[coord + 1] & 0xff;
+                pb = pixels[coord + 2] & 0xff;
+                grayImage[i][j] = (short) Math.round(0.299 * pr + 0.587 * pg + 0.114 * pb);
+            }
+        }
+        return grayImage;
+    }
+
+    public static void templateMatching(short[][] sourceImg, short[][] templateImg) {
+        int r1 = sourceImg.length;
+        int c1 = sourceImg[0].length;
+        int r2 = templateImg.length;
+        int c2 = templateImg[0].length;
+        int tempSize = r2 * c2;
+        double minimum = 1000000000;
+
+        for (int i = 0; i <= r1 - r2; i++) {
+            for (int j = 0; j <= c1 - c2; j++) {
+                double absDiff = 0.0;
+                for (int m = 0; m < r2; m++) {
+                    for (int n = 0; n < c2; n++) {
+                        absDiff += Math.abs(sourceImg[i + m][j + n] - templateImg[m][n]);
+                    }
+                }
+                absDiff /= tempSize;
+
+                if (absDiff < minimum) {
+                    minimum = absDiff;
+                }
+            }
+        }
+
+        double threshold = 10 * minimum;
+        for (int i = 0; i <= r1 - r2; i++) {
+            for (int j = 0; j <= c1 - c2; j++) {
+                double absDiff = 0.0;
+                for (int m = 0; m < r2; m++) {
+                    for (int n = 0; n < c2; n++) {
+                        absDiff += Math.abs(sourceImg[i + m][j + n] - templateImg[m][n]);
+                    }
+                }
+                absDiff /= tempSize;
+
+                if (absDiff <= threshold) {
+                    addRectangle(sourceImage, j, i, c2, r2);
+                }
+            }
+        }
+    }
+
+    public static void addRectangle(BufferedImage image, int x, int y, int rectWidth, int rectHeight) {
+        Graphics2D g2D = image.createGraphics();
+        g2D.setColor(Color.RED);
+        g2D.drawRect(x, y, rectWidth, rectHeight);
+        g2D.dispose();
+    }
+
+    public static void writeColourImage(String fileName) throws IOException {
+        ImageIO.write(sourceImage, "jpg", new File(fileName));
+    }
+}
