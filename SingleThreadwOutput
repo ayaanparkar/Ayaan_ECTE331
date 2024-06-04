@@ -7,6 +7,8 @@ import java.awt.image.DataBufferByte;
 import java.io.File;
 import java.io.IOException;
 import javax.imageio.ImageIO;
+import java.util.ArrayList;
+import java.util.List;
 
 public class myMain {
 
@@ -30,7 +32,7 @@ public class myMain {
 
         templateMatching(sourceImg, templateImg);
 
-        // Save the result image in the same directory as the source and template images
+        // Save the result image using the provided method
         writeColourImage("Result.jpg");
 
         System.out.println("Result image saved as: Result.jpg");
@@ -71,8 +73,10 @@ public class myMain {
         int r2 = templateImg.length;
         int c2 = templateImg[0].length;
         int tempSize = r2 * c2;
-        double minimum = 1000000000;
+        double minimum = 100000000;
+        double[][] absDiffMat = new double[r1 - r2 + 1][c1 - c2 + 1];
 
+        // Calculate the absolute differences and find the minimum
         for (int i = 0; i <= r1 - r2; i++) {
             for (int j = 0; j <= c1 - c2; j++) {
                 double absDiff = 0.0;
@@ -82,6 +86,7 @@ public class myMain {
                     }
                 }
                 absDiff /= tempSize;
+                absDiffMat[i][j] = absDiff;
 
                 if (absDiff < minimum) {
                     minimum = absDiff;
@@ -89,21 +94,22 @@ public class myMain {
             }
         }
 
+        // Determine the threshold
         double threshold = 10 * minimum;
+
+        // Find and store all coordinates that are below the threshold
+        List<int[]> coordinates = new ArrayList<int[]>();
         for (int i = 0; i <= r1 - r2; i++) {
             for (int j = 0; j <= c1 - c2; j++) {
-                double absDiff = 0.0;
-                for (int m = 0; m < r2; m++) {
-                    for (int n = 0; n < c2; n++) {
-                        absDiff += Math.abs(sourceImg[i + m][j + n] - templateImg[m][n]);
-                    }
-                }
-                absDiff /= tempSize;
-
-                if (absDiff <= threshold) {
-                    addRectangle(sourceImage, j, i, c2, r2);
+                if (absDiffMat[i][j] <= threshold) {
+                    coordinates.add(new int[]{i, j});
                 }
             }
+        }
+
+        // Draw rectangles at all stored coordinates
+        for (int[] coord : coordinates) {
+            addRectangle(sourceImage, coord[1], coord[0], c2, r2);
         }
     }
 
