@@ -18,6 +18,7 @@ public class myMain {
     private static BufferedImage sourceImage;
     private static BufferedImage templateImage;
     private static double minimum = 100000000.0; // Shared minimum value across threads
+    private static final Object lock = new Object(); // Custom lock object
 
     public static void main(String[] args) throws IOException {
         String sourceImagePath = "TenCardG.jpg";
@@ -31,22 +32,26 @@ public class myMain {
         templateImage = ImageIO.read(templateFile);
         short[][] templateImg = readColourImage(templateImagePath);
 
-        // Using 4 threads 
+        // Using 4 threads for this example, you can adjust this number
         int numOfThreads = 4;
 
+        long startTime = System.nanoTime();
         templateMatchingMultithreaded(sourceImg, templateImg, numOfThreads);
+        long endTime = System.nanoTime();
+        long executionTime = endTime - startTime;
 
         // Save the result image using the provided method
-        writeColourImage("Result.jpg");
+        writeColourImage("ResultMultiThreaded.jpg");
 
-        System.out.println("Result image saved as: Result.jpg");
+        System.out.println("Result image saved as: ResultMultiThreaded.jpg");
+        System.out.println("Execution time (Multi-Threaded): " + executionTime / 1000000.0 + " ms");
 
         // Verify file existence
-        File resultFile = new File("Result.jpg");
+        File resultFile = new File("ResultMultiThreaded.jpg");
         if (resultFile.exists()) {
-            System.out.println("Result.jpg has been successfully created.");
+            System.out.println("ResultMultiThreaded.jpg has been successfully created.");
         } else {
-            System.out.println("Failed to create Result.jpg.");
+            System.out.println("Failed to create ResultMultiThreaded.jpg.");
         }
     }
 
@@ -101,8 +106,12 @@ public class myMain {
                             absDiff /= tempSize;
                             absDiffMat[i][j] = absDiff;
 
-                            // Update minimum in a thread-safe manner
-                            updateMinimum(absDiff);
+                            // Update minimum in a thread-safe manner using a synchronized block with a custom lock object
+                            synchronized (lock) {
+                                if (absDiff < minimum) {
+                                    minimum = absDiff;
+                                }
+                            }
                         }
                     }
                 }
@@ -132,13 +141,6 @@ public class myMain {
         }
     }
 
-    // Synchronized method to update minimum
-    public static synchronized void updateMinimum(double value) {
-        if (value < minimum) {
-            minimum = value;
-        }
-    }
-
     public static void addRectangle(BufferedImage image, int x, int y, int rectWidth, int rectHeight) {
         Graphics2D g2D = image.createGraphics();
         g2D.setColor(Color.RED);
@@ -150,4 +152,3 @@ public class myMain {
         ImageIO.write(sourceImage, "jpg", new File(fileName));
     }
 }
-
