@@ -1,0 +1,155 @@
+package projectA;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.ImageIO;
+import java.util.ArrayList;
+import java.util.List;
+
+public class myMain {
+
+    public static short[][] grayImage;
+    public static int width;
+    public static int height;
+    private static BufferedImage sourceImage;
+    private static BufferedImage templateImage;
+    private static double minimum = 100000000.0; // Shared minimum value across threads
+    private static final Object lock = new Object(); // Custom lock object
+
+    public static void main(String[] args) throws IOException {
+        String sourceImagePath = "TenCardG.jpg";
+        String templateImagePath = "Template.jpg";
+
+        File sourceFile = new File(sourceImagePath);
+        sourceImage = ImageIO.read(sourceFile);
+        short[][] sourceImg = readColourImage(sourceImagePath);
+
+        File templateFile = new File(templateImagePath);
+        templateImage = ImageIO.read(templateFile);
+        short[][] templateImg = readColourImage(templateImagePath);
+
+        // Using 4 threads for this example, you can adjust this number
+        int numOfThreads = 4;
+
+        long startTime = System.nanoTime();
+        templateMatchingMultithreaded(sourceImg, templateImg, numOfThreads);
+        long endTime = System.nanoTime();
+        long executionTime = endTime - startTime;
+
+        // Save the result image using the provided method
+        writeColourImage("ResultMultiThreaded.jpg");
+
+        System.out.println("Result image saved as: MEResultMultiThreaded.jpg");
+        System.out.println("Execution time (Multi-Threaded): " + executionTime / 1000000.0 + " ms");
+
+        // Verify file existence
+        File resultFile = new File("meResultMultiThreaded.jpg");
+        if (resultFile.exists()) {
+            System.out.println("ResultMultiThreaded.jpg has been successfully created.");
+        } else {
+            System.out.println("Failed to create ResultMultiThreaded.jpg.");
+        }
+    }
+
+    public static short[][] readColourImage(String fileName) throws IOException {
+        BufferedImage image = ImageIO.read(new File(fileName));
+        width = image.getWidth();
+        height = image.getHeight();
+
+        byte[] pixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        grayImage = new short[height][width];
+
+        int coord, pr, pg, pb;
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                coord = 3 * (i * width + j);
+                pr = pixels[coord] & 0xff;
+                pg = pixels[coord + 1] & 0xff;
+                pb = pixels[coord + 2] & 0xff;
+                grayImage[i][j] = (short) Math.round(0.299 * pr + 0.587 * pg + 0.114 * pb);
+            }
+        }
+        return grayImage;
+    }
+
+    public static void templateMatchingMultithreaded(final short[][] sourceImg, final short[][] templateImg, int numOfThreads) {
+        int r1 = sourceImg.length;
+        final int c1 = sourceImg[0].length;
+        final int r2 = templateImg.length;
+        final int c2 = templateImg[0].length;
+        final int tempSize = r2 * c2;
+        final double[][] absDiffMat = new double[r1 - r2 + 1][c1 - c2 + 1];
+
+        int chunkSize = (r1 - r2 + 1) / numOfThreads;
+        final List<int[]> coordinates = new ArrayList<int[]>();
+
+        Thread[] threads = new Thread[numOfThreads];
+
+        for (int t = 0; t < numOfThreads; t++) {
+            final int startRow = t * chunkSize;
+            final int endRow = (t == numOfThreads - 1) ? (r1 - r2 + 1) : (startRow + chunkSize);
+
+            threads[t] = new Thread(new Runnable() {
+                public void run() {
+                    for (int i = startRow; i < endRow; i++) {
+                        for (int j = 0; j <= c1 - c2; j++) {
+                            double absDiff = 0.0;
+                            for (int m = 0; m < r2; m++) {
+                                for (int n = 0; n < c2; n++) {
+                                    absDiff += Math.abs(sourceImg[i + m][j + n] - templateImg[m][n]);
+                                }
+                            }
+                            absDiff /= tempSize;
+                            absDiffMat[i][j] = absDiff;
+
+                            // Update minimum in a thread-safe manner using a synchronized block with a custom lock object
+                            synchronized (lock) {
+                                if (absDiff < minimum) {
+                                    minimum = absDiff;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            threads[t].start();
+        }
+
+        try {
+            for (int t = 0; t < numOfThreads; t++) {
+                threads[t].join();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        double threshold = 10 * minimum;
+        for (int i = 0; i <= r1 - r2; i++) {
+            for (int j = 0; j <= c1 - c2; j++) {
+                if (absDiffMat[i][j] <= threshold) {
+                    coordinates.add(new int[]{i, j});
+                }
+            }
+        }
+
+        for (int[] coord : coordinates) {
+            addRectangle(sourceImage, coord[1], coord[0], c2, r2);
+        }
+    }
+
+    public static void addRectangle(BufferedImage image, int x, int y, int rectWidth, int rectHeight) {
+        Graphics2D g2D = image.createGraphics();
+        g2D.setColor(Color.RED);
+        g2D.drawRect(x, y, rectWidth, rectHeight);
+        g2D.dispose();
+    }
+
+    public static void writeColourImage(String fileName) throws IOException {
+        ImageIO.write(sourceImage, "jpg", new File(fileName));
+    }
+}
+
