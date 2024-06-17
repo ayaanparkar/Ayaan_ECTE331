@@ -44,7 +44,7 @@ public class myMain {
         writeColourImage("ResultMultiThreaded.jpg");
 
         System.out.println("Result image saved as: ResultMultiThreaded.jpg");
-        System.out.println("Execution time (Multi-Threaded): " + executionTime / 1000000.0 + " ms");
+        System.out.println("Execution time (Multi-Threaded): " + executionTime / 1000000.0 + " s");
 
         // Verify file existence
         File resultFile = new File("ResultMultiThreaded.jpg");
