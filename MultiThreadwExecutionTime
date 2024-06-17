@@ -32,7 +32,7 @@ public class myMain {
         templateImage = ImageIO.read(templateFile);
         short[][] templateImg = readColourImage(templateImagePath);
 
-        // Using 4 threads for this example, you can adjust this number
+      
         int numOfThreads = 4;
 
         long startTime = System.nanoTime();
