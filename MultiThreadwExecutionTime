@@ -32,8 +32,8 @@ public class myMain {
         templateImage = ImageIO.read(templateFile);
         short[][] templateImg = readColourImage(templateImagePath);
 
-      
-        int numOfThreads = 4;
+      // test cases include 1,2,4,8,16
+        int numOfThreads = 1;
 
         long startTime = System.nanoTime();
         templateMatchingMultithreaded(sourceImg, templateImg, numOfThreads);
