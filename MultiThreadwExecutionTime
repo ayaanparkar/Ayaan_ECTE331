@@ -43,11 +43,11 @@ public class myMain {
         // Save the result image using the provided method
         writeColourImage("ResultMultiThreaded.jpg");
 
-        System.out.println("Result image saved as: MEResultMultiThreaded.jpg");
+        System.out.println("Result image saved as: ResultMultiThreaded.jpg");
         System.out.println("Execution time (Multi-Threaded): " + executionTime / 1000000.0 + " ms");
 
         // Verify file existence
-        File resultFile = new File("meResultMultiThreaded.jpg");
+        File resultFile = new File("ResultMultiThreaded.jpg");
         if (resultFile.exists()) {
             System.out.println("ResultMultiThreaded.jpg has been successfully created.");
         } else {
@@ -106,7 +106,8 @@ public class myMain {
                             absDiff /= tempSize;
                             absDiffMat[i][j] = absDiff;
 
-                            // Update minimum in a thread-safe manner using a synchronized block with a custom lock object
+                            // Update minimum in a thread-safe manner using a synchronized 
+                            // block with a custom lock object
                             synchronized (lock) {
                                 if (absDiff < minimum) {
                                     minimum = absDiff;
