@@ -84,14 +84,14 @@ public class myMain {
         final int tempSize = r2 * c2;
         final double[][] absDiffMat = new double[r1 - r2 + 1][c1 - c2 + 1];
 
-        int chunkSize = (r1 - r2 + 1) / numOfThreads;
+        int section = (r1 - r2 + 1) / numOfThreads;
         final List<int[]> coordinates = new ArrayList<int[]>();
 
         Thread[] threads = new Thread[numOfThreads];
 
         for (int t = 0; t < numOfThreads; t++) {
-            final int startRow = t * chunkSize;
-            final int endRow = (t == numOfThreads - 1) ? (r1 - r2 + 1) : (startRow + chunkSize);
+            final int startRow = t * section;
+            final int endRow = (t == numOfThreads - 1) ? (r1 - r2 + 1) : (startRow + section);
 
             threads[t] = new Thread(new Runnable() {
                 public void run() {
